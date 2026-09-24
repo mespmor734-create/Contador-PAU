@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Contador de Selectividad</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f7f5;
+      color: #222;
+    }
+
+    .widget {
+      max-width: 500px;
+      margin: auto;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .total {
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1;
+      margin: 15px 0 5px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 18px;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .date {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 7px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 9px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #888;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      border: none;
+      border-radius: 9px;
+      background: #222;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    .history {
+      margin-top: 20px;
+    }
+
+    .history-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .day {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    .number {
+      font-weight: 600;
+    }
+
+    .reset {
+      margin-top: 15px;
+      background: transparent;
+      color: #999;
+      font-size: 12px;
+    }
+
+    .reset:hover {
+      background: #eee;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="widget">
+
+    <div class="title">🔴 SELECTIVIDAD</div>
+
+    <div class="total" id="total">0</div>
+
+    <div class="subtitle">
+      veces mencionada en clase
+    </div>
+
+    <div class="card">
+
+      <div class="date" id="today"></div>
+
+      <input
+        type="number"
+        id="amount"
+        min="0"
+        placeholder="¿Cuántas veces hoy?"
+      >
+
+      <button onclick="addToday()">
+        Añadir recuento de hoy
+      </button>
+
+    </div>
+
+    <div class="history">
+
+      <div class="history-title">
+        Historial
+      </div>
+
+      <div id="history"></div>
+
+    </div>
+
+    <button class="reset" onclick="resetCounter()">
+      Reiniciar contador
+    </button>
+
+  </div>
+
+
+  <script>
+
+    // Cargar los datos guardados
+    let data = JSON.parse(
+      localStorage.getItem("selectividadData") || "{}"
+    );
+
+
+    // Obtener fecha actual
+    function getToday() {
+
+      const now = new Date();
+
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+
+      return `${year}-${month}-${day}`;
+    }
+
+
+    // Mostrar fecha de hoy
+    function displayToday() {
+
+      const today = new Date();
+
+      document.getElementById("today").textContent =
+        today.toLocaleDateString("es-ES", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        });
+    }
+
+
+    // Añadir el recuento del día
+    function addToday() {
+
+      const input = document.getElementById("amount");
+
+      const amount = Number(input.value);
+
+      if (amount < 0 || isNaN(amount)) {
+        return;
+      }
+
+      const today = getToday();
+
+      // Si ya había un recuento para hoy,
+      // se suma al anterior
+      data[today] = (data[today] || 0) + amount;
+
+      save();
+
+      input.value = "";
+    }
+
+
+    // Calcular total
+    function getTotal() {
+
+      return Object.values(data).reduce(
+        (total, number) => total + number,
+        0
+      );
+    }
+
+
+    // Mostrar todos los datos
+    function render() {
+
+      document.getElementById("total").textContent =
+        getTotal();
+
+      const history = document.getElementById("history");
+
+      history.innerHTML = "";
+
+      const dates = Object.keys(data).sort().reverse();
+
+      dates.forEach(date => {
+
+        const row = document.createElement("div");
+
+        row.className = "day";
+
+        const formattedDate =
+          new Date(date + "T12:00:00")
+            .toLocaleDateString("es-ES");
+
+        row.innerHTML = `
+          <span>${formattedDate}</span>
+          <span class="number">${data[date]}</span>
+        `;
+
+        history.appendChild(row);
+
+      });
+
+    }
+
+
+    // Guardar datos
+    function save() {
+
+      localStorage.setItem(
+        "selectividadData",
+        JSON.stringify(data)
+      );
+
+      render();
+    }
+
+
+    // Reiniciar
+    function resetCounter() {
+
+      const confirmReset =
+        confirm(
+          "¿Seguro que quieres borrar todo el recuento?"
+        );
+
+      if (!confirmReset) return;
+
+      data = {};
+
+      localStorage.removeItem(
+        "selectividadData"
+      );
+
+      render();
+    }
+
+
+    // Inicializar
+    displayToday();
+    render();
+
+  </script>
+
+</body>
+</html>
